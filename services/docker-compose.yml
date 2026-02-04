@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  openclaw:
+    image: node:18-alpine
+    container_name: enignanebula-openclaw
+    ports:
+      - "18789:18789"
+    volumes:
+      - /home/${USER}/.openclaw/workspace:/root/.openclaw/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - NODE_ENV=production
+      - TZ=Etc/UTC
+    restart: unless-stopped
+    command: >
+      sh -c "npm install -g openclaw &&
+              mkdir -p /root/.openclaw/workspace &&
+              openclaw gateway"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: enignanebula-postgres
+    environment:
+      POSTGRES_DB: enignanebula_db
+      POSTGRES_USER: enignanebula
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-enignanebula_secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: enignanebula-redis
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

@@ -1,0 +1,75 @@
+---
+# Ansible playbook for OpenClaw setup
+- name: Install and configure OpenClaw for EnigmaNebula
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  vars:
+    username: "{{ lookup('env', 'USER') }}"
+    openclaw_user_dir: "/home/{{ username }}/.openclaw"
+    
+  tasks:
+    - name: Install Node.js and npm
+      apt:
+        name:
+          - nodejs
+          - npm
+        state: present
+        
+    - name: Install OpenClaw globally
+      npm:
+        name: openclaw
+        global: yes
+        state: present
+        
+    - name: Create OpenClaw workspace directory
+      file:
+        path: "{{ openclaw_user_dir }}/workspace"
+        state: directory
+        owner: "{{ username }}"
+        mode: '0755'
+        
+    - name: Create EnigmaNebula workspace directories
+      file:
+        path: "{{ openclaw_user_dir }}/workspace/{{ item }}"
+        state: directory
+        owner: "{{ username }}"
+        mode: '0755'
+      loop:
+        - memory
+        - EnigmaNebula
+        - EnigmaNebula/connections
+        - EnigmaNebula/identity
+        - EnigmaNebula/learning
+        - EnigmaNebula/memory
+        
+    - name: Copy OpenClaw configuration
+      template:
+        src: openclaw.config.j2
+        dest: "{{ openclaw_user_dir }}/openclaw.json"
+        owner: "{{ username }}"
+        mode: '0644'
+        
+    - name: Set up OpenClaw service
+      template:
+        src: openclaw.service.j2
+        dest: /etc/systemd/system/openclaw.service
+        mode: '0644'
+        
+    - name: Enable and start OpenClaw service
+      systemd:
+        name: openclaw
+        daemon_reload: yes
+        state: started
+        enabled: yes
+        
+    - name: Configure firewall for OpenClaw
+      ufw:
+        rule: allow
+        port: '18789'
+        proto: tcp
+        
+    - name: Print completion message
+      debug:
+        msg: "OpenClaw installation and configuration complete"

@@ -1,0 +1,88 @@
+---
+# Ansible playbook for base system setup
+- name: Configure base system for EnigmaNebula
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  vars:
+    username: "{{ lookup('env', 'USER') }}"
+    
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+      
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+        force_apt_get: yes
+        
+    - name: Install base packages
+      apt:
+        name:
+          - curl
+          - wget
+          - vim
+          - htop
+          - git
+          - zsh
+          - tmux
+          - build-essential
+          - python3
+          - python3-pip
+          - python3-dev
+          - postgresql
+          - postgresql-contrib
+          - nginx
+          - ufw
+          - certbot
+          - python3-certbot-nginx
+          - fail2ban
+        state: present
+        force_apt_get: yes
+        
+    - name: Enable and start firewall
+      ufw:
+        state: enabled
+        policy: deny
+        
+    - name: Allow SSH through firewall
+      ufw:
+        rule: allow
+        name: OpenSSH
+        
+    - name: Allow HTTP through firewall
+      ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+        
+    - name: Allow HTTPS through firewall
+      ufw:
+        rule: allow
+        port: '443'
+        proto: tcp
+        
+    - name: Set up timezone
+      timezone:
+        name: UTC
+        
+    - name: Configure user settings
+      user:
+        name: "{{ username }}"
+        groups: sudo
+        append: yes
+        shell: /bin/bash
+        
+    - name: Set up SSH config
+      template:
+        src: ssh_config.j2
+        dest: /home/{{ username }}/.ssh/config
+        owner: "{{ username }}"
+        mode: '0600'
+        
+    - name: Print completion message
+      debug:
+        msg: "Base system configuration complete"
