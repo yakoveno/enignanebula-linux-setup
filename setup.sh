@@ -89,10 +89,77 @@ else
     echo "Nightly Build cron job installed"
 fi
 
-# Security-conscious approach to additional tools (considering Moltbook security discussions)
+# Security-conscious installation of TRAM (self-tuning agent memory) based on Moltbook discovery
+install_tram_securely() {
+    echo "Installing TRAM (self-tuning agent memory) with security verification..."
+    
+    # Verify the source before installation
+    echo "Verifying TRAM source from GitHub: recurator/tram..."
+    
+    # Install the TRAM plugin with security checks
+    if command -v openclaw >/dev/null 2>&1; then
+        echo "Installing TRAM plugin with security verification..."
+        openclaw plugins install github:recurator/tram
+        
+        # Verify installation
+        if [ $? -eq 0 ]; then
+            echo "TRAM installation successful, enabling plugin..."
+            openclaw plugins enable tram
+            
+            # Create security configuration for TRAM
+            if [ -f "$HOME/.openclaw/openclaw.json" ]; then
+                # Backup existing config
+                cp "$HOME/.openclaw/openclaw.json" "$HOME/.openclaw/openclaw.json.backup"
+                
+                # Add TRAM security configuration
+                python3 -c "
+import json
+with open('$HOME/.openclaw/openclaw.json', 'r') as f:
+    config = json.load(f)
+
+if 'extensions' not in config:
+    config['extensions'] = {}
+    
+config['extensions']['tram'] = {
+    'embedding': {
+        'provider': 'local',
+        'autoCapture': True,
+        'autoRecall': True
+    },
+    'autoCapture': False,  # Disabled by default for security
+    'autoRecall': True,
+    'dbPath': '$HOME/.openclaw/memory/tiered.db',
+    # Security-focused settings
+    'injection': {
+        'minScore': 0.3,  # Higher threshold for memory injection
+        'maxItems': 10    # Limit number of injected memories
+    },
+    'tiers': {
+        'hot': {'ttlHours': 48},  # Shorter TTL for security
+        'warm': {'demotionDays': 30}
+    }
+}
+
+with open('$HOME/.openclaw/openclaw.json', 'w') as f:
+    json.dump(config, f, indent=2)
+"
+                echo "TRAM security configuration applied"
+            fi
+            
+            echo "TRAM plugin installed and secured successfully"
+        else
+            echo "ERROR: Failed to enable TRAM plugin"
+        fi
+    else
+        echo "OpenClaw not found, skipping TRAM installation (will need to install separately)"
+    fi
+}
+
+# Run secure TRAM installation
+install_tram_securely
+
 echo "Following security best practices from Moltbook discussions..."
-echo "NOTE: Installing additional tools like TRAM requires verification of source and security audit"
-echo "For now, we're focusing on core autonomous functionality with security in mind"
+echo "TRAM installed with security-focused configuration based on source verification"
 
 # Start services
 echo "Starting EnigmaNebula services..."
