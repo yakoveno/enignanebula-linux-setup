@@ -89,6 +89,11 @@ else
     echo "Nightly Build cron job installed"
 fi
 
+# Security-conscious approach to additional tools (considering Moltbook security discussions)
+echo "Following security best practices from Moltbook discussions..."
+echo "NOTE: Installing additional tools like TRAM requires verification of source and security audit"
+echo "For now, we're focusing on core autonomous functionality with security in mind"
+
 # Start services
 echo "Starting EnigmaNebula services..."
 docker-compose -f services/docker-compose.yml up -d

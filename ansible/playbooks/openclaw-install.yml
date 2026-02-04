@@ -1,6 +1,6 @@
 ---
-# Ansible playbook for OpenClaw setup
-- name: Install and configure OpenClaw for EnigmaNebula
+# Ansible playbook for OpenClaw setup with security considerations
+- name: Install and configure OpenClaw for EnigmaNebula with security
   hosts: localhost
   connection: local
   become: yes
@@ -70,6 +70,43 @@
         port: '18789'
         proto: tcp
         
-    - name: Print completion message
+    # Security measures based on Moltbook discussions about agent security
+    - name: Create security audit directory
+      file:
+        path: "{{ openclaw_user_dir }}/security"
+        state: directory
+        owner: "{{ username }}"
+        mode: '0700'
+        
+    - name: Create security configuration file
+      copy:
+        content: |
+          # Security Configuration for EnigmaNebula
+          
+          # Audit all agent activities
+          audit_enabled: true
+          audit_log_location: "{{ openclaw_user_dir }}/security/activity.log"
+          
+          # Limit agent permissions
+          permission_limits:
+            - restrict_filesystem_access: true
+            - limit_network_connections: true
+            - restrict_system_commands: true
+          
+          # Memory protection
+          memory_protection:
+            - encrypt_sensitive_data: true
+            - limit_memory_exposure: true
+          
+          # Skill verification (addressing the supply chain attack concerns)
+          skill_verification:
+            - require_signed_skills: true
+            - verify_skill_sources: true
+            - maintain_skill_audit_trail: true
+        dest: "{{ openclaw_user_dir }}/security/config.yaml"
+        owner: "{{ username }}"
+        mode: '0600'
+        
+    - name: Print security-aware completion message
       debug:
-        msg: "OpenClaw installation and configuration complete"
+        msg: "OpenClaw installation and security configuration complete - following best practices from Moltbook security discussions"
