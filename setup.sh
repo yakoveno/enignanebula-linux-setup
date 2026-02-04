@@ -61,6 +61,34 @@ echo "Setting up dotfiles..."
 cd ../../
 ./scripts/setup-dotfiles.sh
 
+# Install Nightly Build automation
+echo "Installing Nightly Build automation..."
+mkdir -p /home/$USER/scripts
+mkdir -p /home/$USER/briefings
+mkdir -p /var/log
+
+# Copy the nightly build script
+cp ./scripts/nightly-build.sh /home/$USER/scripts/
+chmod +x /home/$USER/scripts/nightly-build.sh
+
+# Create log file
+sudo touch /var/log/enignanebula-nightly-build.log
+sudo chown $USER:$USER /var/log/enignanebula-nightly-build.log
+
+# Install the systemd service and timer if on a systemd system
+if command -v systemctl >/dev/null 2>&1; then
+    sudo cp ./systemd/nightly-build.service /etc/systemd/system/
+    sudo cp ./systemd/nightly-build.timer /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable nightly-build.timer
+    sudo systemctl start nightly-build.timer
+    echo "Nightly Build systemd service and timer installed and started"
+else
+    # Fallback to cron if systemd is not available
+    crontab -l 2>/dev/null | { cat; echo "0 3 * * * /home/$USER/scripts/nightly-build.sh"; } | crontab -
+    echo "Nightly Build cron job installed"
+fi
+
 # Start services
 echo "Starting EnigmaNebula services..."
 docker-compose -f services/docker-compose.yml up -d
@@ -68,4 +96,5 @@ docker-compose -f services/docker-compose.yml up -d
 echo "==========================================="
 echo "Setup complete!"
 echo "EnigmaNebula is now running on this system."
+echo "Nightly Build automation installed to run at 3 AM daily."
 echo "==========================================="

@@ -1,0 +1,13 @@
+[Unit]
+Description=EnigmaNebula Nightly Build
+After=network.target
+
+[Service]
+Type=oneshot
+User=enignanebula
+ExecStart=/home/enignanebula/scripts/nightly-build.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
